@@ -224,9 +224,18 @@ export async function dispatchReplyFromConfig(params: {
       mediaUrls: ctx.MediaUrls,
       mediaTypes: ctx.MediaTypes,
     });
-    void triggerInternalHook(hookEvent).catch((err) => {
+    try {
+      await triggerInternalHook(hookEvent);
+    } catch (err) {
       logVerbose(`dispatch-from-config: message:received hook failed: ${String(err)}`);
-    });
+    }
+
+    // Inject contextual memories from hooks (e.g., engram-recall)
+    const injectedContext = (hookEvent.context as Record<string, unknown>).injectedContext;
+    if (typeof injectedContext === "string" && injectedContext.length > 0) {
+      const existing = ctx.BodyForAgent ?? ctx.Body ?? "";
+      ctx.BodyForAgent = `${injectedContext}\n\n---\n\n${existing}`;
+    }
   }
 
   // Check if we should route replies to originating channel instead of dispatcher.

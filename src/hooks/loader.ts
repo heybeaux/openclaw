@@ -48,8 +48,19 @@ export async function loadInternalHooks(
   try {
     const hookEntries = loadWorkspaceHookEntries(workspaceDir, { config: cfg });
 
+    console.log(
+      `[hooks] Discovered ${hookEntries.length} hook(s): ${hookEntries.map((e) => e.hook.name).join(", ")}`,
+    );
+
     // Filter by eligibility
     const eligible = hookEntries.filter((entry) => shouldIncludeHook({ entry, config: cfg }));
+
+    const excluded = hookEntries.filter((entry) => !shouldIncludeHook({ entry, config: cfg }));
+    if (excluded.length > 0) {
+      console.log(
+        `[hooks] Excluded ${excluded.length} hook(s): ${excluded.map((e) => e.hook.name).join(", ")} (missing env/config)`,
+      );
+    }
 
     for (const entry of eligible) {
       const hookConfig = resolveHookConfig(cfg, entry.hook.name);
