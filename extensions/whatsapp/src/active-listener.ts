@@ -28,9 +28,18 @@ export type ActiveWebListener = {
   close?: () => Promise<void>;
 };
 
-let _currentListener: ActiveWebListener | null = null;
+// Store singleton state on globalThis so it survives bundler chunk duplication.
+// When the module is duplicated across chunks, each copy gets its own module-level
+// variables — but globalThis is always the same object, so reads and writes converge.
+const LISTENERS_KEY = "__openclaw_whatsapp_active_listeners__";
 
-const listeners = new Map<string, ActiveWebListener>();
+if (!(globalThis as Record<string, unknown>)[LISTENERS_KEY]) {
+  (globalThis as Record<string, unknown>)[LISTENERS_KEY] = new Map<string, ActiveWebListener>();
+}
+const listeners = (globalThis as Record<string, unknown>)[LISTENERS_KEY] as Map<
+  string,
+  ActiveWebListener
+>;
 
 export function resolveWebAccountId(accountId?: string | null): string {
   return (accountId ?? "").trim() || DEFAULT_ACCOUNT_ID;
@@ -72,9 +81,6 @@ export function setActiveWebListener(
     listeners.delete(id);
   } else {
     listeners.set(id, listener);
-  }
-  if (id === DEFAULT_ACCOUNT_ID) {
-    _currentListener = listener;
   }
 }
 
